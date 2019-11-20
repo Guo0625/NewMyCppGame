@@ -1,0 +1,12 @@
+{
+    "gestures":[
+        "shape_lm",
+        "shape_rm",
+        "shape_wquan",
+        "shape_lquan",
+        "shape_lheart",
+        "shape_rheart",
+        "shape_lcircle",
+        "shape_rcircle"
+    ]
+}

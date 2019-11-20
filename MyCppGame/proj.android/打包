@@ -1,0 +1,6 @@
+#!/bin/bash
+#就是运行下ant，然后install
+
+path=`dirname $0`
+cd $path/..
+sh build_pacakge.sh $path

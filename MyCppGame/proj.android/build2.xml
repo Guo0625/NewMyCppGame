@@ -1,0 +1,403 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="FallenSouls_China" default="release" basedir=".">
+	<!-- 环境变量 -->
+	<property environment="env" />
+	<!-- 应用的名称 -->
+	<property name="appName" value="${ant.project.name}" />
+	<!-- 应用的包目录 -->
+	<property name="appPackage" value="com.lehoo.ror2" />
+	<!-- SDK目录(获取操作系统环境变量ANDROID_SDK_HOME的值) -->
+	<property name="sdk-folder" value="/Users/admin/Documents/adt/android/adt-bundle-mac-x86_64-20130219/sdk" />
+	<!-- SDK中tools目录 -->
+	<property name="sdk-tools" value="${sdk-folder}/tools" />
+	<!-- SDK指定平台目录 -->
+	<property name="sdk-platform-folder" value="${sdk-folder}/platforms/android-19" />
+	<!-- SDK指定平台的tools目录 -->
+	<property name="sdk-platform-tools" value="${sdk-folder}/platform-tools" />
+	<!-- SDK指定平台的build-tools目录,jdk版本改为1.7，build-tools最低为19.0.0才支持 -->
+	<property name="sdk-build-tools" value="${sdk-folder}/platform-tools"/>
+	<!-- so -->
+	<property name="external-libs-ospath" value="${basedir}/libs" />
+	<!-- 使用到得命令 -->
+
+	<property name="env.JAVA_HOME" value="/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Home" />
+	<property name="aapt" value="${sdk-build-tools}/aapt" />
+	<property name="aidl" value="${sdk-build-tools}/aidl" />
+	<property name="dx" value="${sdk-build-tools}/dx" />
+	<property name="apkbuilder" value="${sdk-tools}/apkbuilder" />
+	<property name="jarsigner" value="${env.JAVA_HOME}/bin/jarsigner" />
+	<property name="zipalign" value="${sdk-tools}/zipalign" />
+	<property name="adb" value="${sdk-platform-tools}/adb" />
+
+	<!-- 生成R文件的相对目录 -->
+	<property name="outdir-gen" value="gen" />
+	<!-- 编译后的文件放置目录 -->
+	<property name="outdir-bin" value="bin_ror" />
+
+	<!-- 第三方lib 工程 -->
+	<property name="library-dir1" value="../cocos2d/cocos/platform/android/java" />
+	<!-- <property name="library-dir2" value="../AndroidLibProject/MarketLicenseLibrary" /> -->
+	<!-- <property name="library-dir3" value="../AndroidLibProject/MarketDownloaderZip" /> -->
+	<!-- <property name="library-dir4" value="../AndroidLibProject/MarketDownloaderLibrary" /> -->
+
+	<!-- 生成class目录 -->
+	<property name="outdir-classes" value="${outdir-bin}" />
+	<property name="outdir-classes-ospath" value="${basedir}/${outdir-classes}" />
+
+	<!-- 资源文件目录 -->
+	<property name="resource-dir" value="res" />
+	<property name="assets-dir" value="assets" />
+
+	<!-- 配置清单文件 -->
+	<property name="android-manifest-xml" value="AndroidManifest.xml" />
+	<!-- 编译时需要的jar,如果项目需要使用到地图服务则需要maps.jar -->
+	<property name="android-jar" value="${sdk-platform-folder}/android.jar" />
+	<!-- <property name="android-maps-jar" value="${sdk-folder}/add-ons/addon_google_apis_google_inc_8/libs/maps.jar" />
+ -->
+
+	<!-- 编译aidl文件所需的预处理框架文件framework.aidl -->
+	<property name="framework-aidl" value="${sdk-platform-folder}/framework.aidl" />
+
+	<!-- Java源文件目录 -->
+	<property name="srcdir" value="src" />
+	<property name="srcdir-ospath" value="${basedir}/${srcdir}" />
+
+	<!-- 外部类库所在目录 -->
+<!-- 	<property name="external-lib" value="lib" />
+	<property name="external-lib-ospath" value="${basedir}/${external-lib}" /> -->
+	<!-- proguard所在目录 -->
+	<property name="proguard-dir" value="proguard" />
+	<property name="proguard-lib" value="${proguard-dir}/proguard.jar" />
+	<property name="unoptimized" value="${proguard-dir}/unoptimized.jar" />
+	<property name="optimized" value="${proguard-dir}/optimized.jar" />
+
+	<!-- classes.dex相关变量 -->
+	<property name="dex-file" value="classes.dex" />
+	<property name="dex-path" value="${outdir-bin}/${dex-file}" />
+	<property name="dex-ospath" value="${basedir}/${dex-path}" />
+
+	<!-- 经过aapt生成的资源包文件 -->
+	<property name="resources-package" value="${outdir-bin}/resources.ap_" />
+	<property name="resources-package-ospath" value="${basedir}/${resources-package}" />
+
+	<!-- 未签名apk包 -->
+	<property name="out-unsigned-package" value="${outdir-bin}/${appName}-unsigned.apk" />
+	<property name="out-unsigned-package-ospath" value="${basedir}/${out-unsigned-package}" />
+
+	<!-- 证书文件 -->
+	<property name="keystore-file" value="${basedir}/keystore/ror_keystore" />
+
+	<!-- 已签名apk包 -->
+	<property name="out-signed-package" value="${outdir-bin}/${appName}-signed.apk" />
+	<property name="out-signed-package-ospath" value="${basedir}/${out-signed-package}" />
+	<tstamp>
+		<format property="DSTAMP" pattern="yyMMdd_kkmmss" locale="zh"/>
+	</tstamp>
+	<!-- 优化后apk包 -->
+	<property name="out-zipalign-package" value="${outdir-bin}/${appName}_1.0.1_${DSTAMP}.apk" />
+	<property name="out-zipalign-package-ospath" value="${basedir}/${out-zipalign-package}" />
+
+	<target name="init">
+		<echo>${appName}</echo>
+		<echo>${DSTAMP}</echo>
+
+	</target>
+
+	<target name="initDir" depends="init">
+		<echo>初始化文件夹...</echo>
+		<delete dir="${outdir-classes}" />
+		<mkdir dir="${outdir-classes}" />
+		<echo>初始化文件夹完成...</echo>
+	</target>
+
+	<!-- 根据工程中的资源文件生成R.java文件 -->
+	<target name="gen-R" depends="initDir">
+		<echo>生成R.java文件...</echo>
+		<exec executable="${aapt}" failonerror="true">
+			<arg value="package" />
+			<!-- 输出详细内容 -->
+			<!-- 	<arg value="-v" />  -->
+			<!-- 强制覆盖已存在的文件 -->
+			<arg value="-f" />
+			<!-- 在-J指定的位置下生成相应的包的目录 -->
+			<arg value="-m" />
+			<!-- 指定R.java文件生成的目录 -->
+			<arg value="-J" />
+			<arg value="${outdir-gen}" />
+
+			<!-- 指定配置清单文件 -->
+			<arg value="-M" />
+			<arg value="${android-manifest-xml}" />
+			<!-- 指定资源文件目录 -->
+			<arg value="-S" />
+			<arg value="${resource-dir}" />
+			<!-- 引入类库 -->
+			<arg value="-I" />
+			<arg value="${android-jar}" />
+		</exec>
+		<echo>从lib工程的AndroidManifest.xml得到R的路径 生成R文件</echo>
+		<exec executable="${aapt}" failonerror="true">
+			<arg value="package" />
+			<arg value="-f" />
+			<arg value="-m" />
+			<arg value="-J" />
+			<arg value="${outdir-gen}" />
+			<arg value="-M" />
+			<arg value="${library-dir1}/AndroidManifest.xml" />
+			<arg value="-S" />
+			<arg value="${library-dir1}/res" />
+			<arg value="-I" />
+			<arg value="${android-jar}" />
+		</exec>
+
+		<!-- 多个library工程时-->
+<!-- 		<echo>从lib工程的AndroidManifest.xml得到R的路径 生成R文件</echo>
+		<exec executable="${aapt}" failonerror="true">
+			<arg value="package" />
+			<arg value="-f" />
+			<arg value="-m" />
+			<arg value="-J" />
+			<arg value="${outdir-gen}" />
+			<arg value="-M" />
+			<arg value="${library-dir2}/AndroidManifest.xml" />
+			<arg value="-S" />
+			<arg value="${library-dir2}/res" />
+			<arg value="-I" />
+			<arg value="${android-jar}" />
+		</exec> -->
+
+<!-- 		<echo>从lib工程的AndroidManifest.xml得到R的路径 生成R文件</echo>
+		<exec executable="${aapt}" failonerror="true">
+			<arg value="package" />
+			<arg value="-f" />
+			<arg value="-m" />
+			<arg value="-J" />
+			<arg value="${outdir-gen}" />
+			<arg value="-M" />
+			<arg value="${library-dir3}/AndroidManifest.xml" />
+			<arg value="-S" />
+			<arg value="${library-dir3}/res" />
+			<arg value="-I" />
+			<arg value="${android-jar}" />
+		</exec> -->
+
+<!-- 		<echo>从lib工程的AndroidManifest.xml得到R的路径 生成R文件</echo>
+		<exec executable="${aapt}" failonerror="true">
+			<arg value="package" />
+			<arg value="-f" />
+			<arg value="-m" />
+			<arg value="-J" />
+			<arg value="${outdir-gen}" />
+			<arg value="-M" />
+			<arg value="${library-dir4}/AndroidManifest.xml" />
+			<arg value="-S" />
+			<arg value="${library-dir4}/res" />
+			<arg value="-I" />
+			<arg value="${android-jar}" />
+		</exec> -->
+
+		<echo>R.java文件生成完成...</echo>
+	</target>
+
+	<!-- 编译aidl文件 -->
+	<target name="aidl" depends="gen-R">
+		<echo>开始编译.aidl文件为.java文件...</echo>
+		<apply executable="${aidl}" failonerror="true" verbose="true">
+			<!-- aidl声明的目录 -->
+			<arg value="-I${srcdir}" />
+			<!-- 指定预处理文件 -->
+			<arg value="-p${framework-aidl}" />
+			<!-- 目标文件目录 -->
+			<arg value="-o${outdir-gen}" />
+			<!-- 指定哪些文件需要编译 -->
+			<fileset dir="${srcdir}">
+				<include name="**/*.aidl" />
+
+			</fileset>
+		</apply>
+		<echo>aidl文件编译完成...</echo>
+	</target>
+
+	<!-- 将class文件进行混淆 -->
+	<target name="optimize" depends="package">
+		<echo>开始进行代码混淆...</echo>
+		<jar basedir="${outdir-classes}" destfile="${unoptimized}" />
+		<java jar="${proguard-lib}" fork="true" failonerror="true">
+			<!-- Dmaximum.inlined.code.length 默认值为8 设置内联代码的长度 -->
+			<jvmarg value="-Dmaximum.inlined.code.length=32" />
+			<!-- 指定配置文件 -->
+			<arg value="@proguard-project.txt" />
+			<arg value="-injars ${unoptimized}" />
+			<arg value="-outjars ${optimized}" />
+			<arg value="-libraryjars ${android-jar}" />
+			<!-- <arg value="-libraryjars ${android-maps-jar}" />  -->
+			<!-- arg value="-libraryjars ${external-lib}/umeng_sdk.jar " /-->
+		</java>
+		<delete dir="${outdir-classes}" />
+		<mkdir dir="${outdir-classes}" />
+		<unzip src="${optimized}" dest="${outdir-classes}" />
+		<delete file="${unoptimized}" />
+		<delete file="${optimized}" />
+		<echo>代码混淆完成...</echo>
+	</target>
+
+	<!-- 将.class文件转化成.dex文件   , optimize-->
+	<target name="dex" depends="compile">
+		<echo>编译文件和引用类库转化为.dex文件...</echo>
+		<exec executable="${dx}" failonerror="true">
+			<arg value="--dex" />
+			<!--	<arg value="verbose" />    -->
+			<arg value="--output=${dex-ospath}" />
+			<!-- 要生成.dex文件的源classes和libraries -->
+			<arg value="${outdir-classes-ospath}" />
+			<!-- <arg value="${external-lib-ospath}" /> -->
+		</exec>
+		<echo>.dex文件转换完成...</echo>
+	</target>
+
+	<!-- 将资源文件放进输出目录 -->
+	<target name="package-res-and-assets">
+		<echo>开始转化资源文件...</echo>
+		<exec executable="${aapt}" failonerror="true">
+			<arg value="package" />
+			<!-- 输出详细内容
+			<arg value="-v" />  -->
+			<!-- 强制覆盖已存在的文件 -->
+			<arg value="-f" />
+			<!-- 指定资源文件目录 -->
+			<arg value="-S" />
+			<arg value="${resource-dir}" />
+
+			<!-- 指定assets文件目录 -->
+			<arg value="-A" />
+			<arg value="${assets-dir}" />
+			<!-- 指定配置清单文件 -->
+			<arg value="-M" />
+			<arg value="${android-manifest-xml}" />
+			<!-- 引入类库 -->
+			<arg value="-I" />
+			<arg value="${android-jar}" />
+			<!-- 指定要生成的包 -->
+			<arg value="-F" />
+			<arg value="${resources-package}" />
+		</exec>
+		<echo>资源文件转化完成...</echo>
+	</target>
+
+	<!-- 打包成未签名的apk -->
+	<target name="package" depends="dex, package-res-and-assets">
+		<echo>开始打包未签名程序...</echo>
+		<exec executable="${apkbuilder}" failonerror="true">
+			<arg value="${out-unsigned-package-ospath}" />
+			<!-- 输出详细内容 -->
+			<!-- 	<arg value="-v" />  -->
+			<!-- 创建未签名程序 -->
+			<arg value="-u" />
+			<!-- 指定dex文件添加到应用程序包中 -->
+			<arg value="-f" />
+			<arg value="${dex-ospath}" />
+			<!-- 指定资源文件添加到应用程序包中 -->
+			<arg value="-z" />
+			<arg value="${resources-package-ospath}" />
+			<!-- 参照源文件的目录结构 -->
+			<arg value="-rf" />
+			<arg value="${srcdir-ospath}" />
+			<!-- 打入so文件 -->
+			<arg value="-rj" />
+			<arg value="${external-libs-ospath}" />
+			<arg value="-nf"/>
+			<arg value="${external-libs-ospath}"/>
+		</exec>
+		<echo>未签名程序打包完成...</echo>
+	</target>
+
+	<!-- 对apk进行签名 -->
+	<target name="jarsigner" depends="optimize">
+		<echo>开始为apk文件签名...</echo>
+		<exec executable="${jarsigner}" failonerror="true">
+			<!-- 签名/验证时输出详细信息 -->
+			<arg value="-verbose" />
+			<!-- 密钥库位置 -->
+			<arg value="-keystore" />
+			<arg value="${keystore-file}" />
+			<!-- 用于密钥库完整性的口令 -->
+			<arg value="-storepass" />
+			<arg value="a123456" />
+			<!-- 专用密钥的口令（如果不同）-->
+			<arg value="-keypass" />
+			<arg value="a123456" />
+			<!-- 已签名的 JAR文件的名称 -->
+			<arg value="-signedjar" />
+			<arg value="${out-signed-package-ospath}" />
+			<!-- 要签名的JAR文件 -->
+			<arg value="${out-unsigned-package-ospath}" />
+			<!-- 文件别名 -->
+			<arg value="ror" />
+		</exec>
+		<echo>apk文件签名完成...</echo>
+	</target>
+
+	<!-- 对apk进行优化 -->
+	<target name="zipalign" depends="jarsigner">
+		<echo>开始对apk文件进行优化...</echo>
+		<exec executable="${zipalign}" failonerror="true">
+			<!-- 覆盖已经存在的文件 -->
+			<arg value="-f" />
+			<!-- 输出详细内容 -->
+			<arg value="-v" />
+			<!-- 以字节为单位对齐  4 提供了32位对齐 -->
+			<arg value="4" />
+			<!-- 需要优化的apk文件 -->
+			<arg value="${out-signed-package}" />
+			<!-- 优化完成的apk文件 -->
+			<arg value="${out-zipalign-package}" />
+		</exec>
+		<echo>apk文件优化完成...</echo>
+	</target>
+
+	<!-- 发布 -->
+	<target name="release" depends="zipalign">
+		<!-- 删除未签名apk -->
+		<delete file="${out-unsigned-package-ospath}" />
+		<delete file="${out-signed-package}" />
+		<echo>APK文件生成完成,生成目录:${out-zipalign-package-ospath}</echo>
+	</target>
+
+	<!-- 安装 -->
+	<target name="install">
+		<echo>开始安装apk文件...</echo>
+		<exec executable="${adb}" failonerror="true">
+			<arg value="install" />
+			<arg value="${out-zipalign-package}" />
+		</exec>
+		<echo>apk文件安装完成...</echo>
+	</target>
+
+	<!-- 重新安装 -->
+	<target name="reinstall" depends="release">
+
+		<echo>开始卸载apk文件...</echo>
+		<exec executable="${adb}" failonerror="true">
+			<arg value="uninstall" />
+			<arg value="${appPackage}" />
+		</exec>
+		<echo>apk文件卸载完成...</echo>
+
+		<echo>开始安装apk文件...</echo>
+		<exec executable="${adb}" failonerror="true">
+			<arg value="install" />
+			<arg value="${out-zipalign-package}" />
+		</exec>
+		<echo>apk文件安装完成...</echo>
+	</target>
+
+	<!-- 卸载 -->
+	<target name="uninstall">
+		<echo>开始卸载apk文件...</echo>
+		<exec executable="${adb}" failonerror="true">
+			<arg value="uninstall" />
+			<arg value="${appPackage}" />
+		</exec>
+		<echo>apk文件卸载完成...</echo>
+	</target>
+</project>
